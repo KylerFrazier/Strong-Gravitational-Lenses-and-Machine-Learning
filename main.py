@@ -9,6 +9,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pandas import read_csv
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import ( confusion_matrix, 
+                              plot_confusion_matrix )
 
 # Hide warnings from sklearn about convergence
 from sklearn.exceptions import ConvergenceWarning
@@ -98,8 +100,8 @@ def main():
     n_best = ns[np.argmin(error_te)]
     print(f"Best n = 2^{int(np.log2(n_best))}")
 
-    plt.semilogx(ns, error_tr, c="blue", basex=2, label="Training Error")
-    plt.semilogx(ns, error_te, c="red", basex=2, label="Testing Error")
+    plt.semilogx(ns, error_tr, c="blue", base=2, label="Training Error")
+    plt.semilogx(ns, error_te, c="red",  base=2, label="Testing Error" )
     plt.title("Model error as a function of $n$")
     plt.xlabel("$n$")
     plt.ylabel("Error")
@@ -119,8 +121,8 @@ def main():
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)
     for threshold in thresholds:
-        ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0)
-        model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper, threshold = threshold)
+        ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0, threshold = threshold)
+        model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper)
         model.fit(x_tr, y_tr)
         error_tr.append(model.error(x_tr, y_tr))
         error_te.append(model.error(x_te, y_te))
