@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Changes matplotlib's backend to write to file instead of display
 import matplotlib
 matplotlib.use('Agg')
@@ -14,11 +16,11 @@ import warnings
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 # Change plot fonts and enable LaTeX
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["Computer Modern Roman"]
-})
+# plt.rcParams.update({
+#     "text.usetex": True,
+#     "font.family": "serif",
+#     "font.serif": ["Computer Modern Roman"]
+# })
 
 # Modules for machine learning
 from utils import ( EnsembleBT,
@@ -81,7 +83,7 @@ def main():
     error_te = []
 
     print(' '*11 + '_'*(len(ns)*2+1))
-    print("Progress: [", end='')
+    print("Progress: [ ", end='', flush=True)
     for n in ns:
         ens_wrapper = RandomForestBT(n_estimators = n, random_state = 0)
         model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper)
@@ -89,8 +91,8 @@ def main():
         error_tr.append(model.error(x_tr, y_tr))
         error_te.append(model.error(x_tr, y_tr))
         models.append(model)
-        print(' >', end='')
-    print(' ]')
+        print('> ', end='', flush=True)
+    print(']')
 
     model_best = models[np.argmin(error_te)]
     n_best = ns[np.argmin(error_te)]
@@ -115,18 +117,18 @@ def main():
     reca = []
 
     print(' '*11 + '_'*(len(thresholds)*2+1))
-    print("Progress: [", end='')
+    print("Progress: [ ", end='', flush=True)
     for threshold in thresholds:
         ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0)
         model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper, threshold = threshold)
         model.fit(x_tr, y_tr)
         error_tr.append(model.error(x_tr, y_tr))
         error_te.append(model.error(x_te, y_te))
-        prec.append(precision(model, x_te, y_te))
-        reca.append(recall(model, x_te, y_te))
+        prec.append(model.precision(x_te, y_te))
+        reca.append(model.recall(x_te, y_te))
         models.append(model)
-        print(' >', end='')
-    print(' ]')
+        print('> ', end='', flush=True)
+    print(']')
 
     model_best = models[np.argmin(error_te)]
     threshold_best = thresholds[np.argmin(error_te)]
