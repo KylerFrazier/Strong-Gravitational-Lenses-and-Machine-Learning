@@ -29,3 +29,6 @@ class NeuralNetworkBT(BaseBinaryThreshold, MLPClassifier):
             beta_1=beta_1, beta_2=beta_2, epsilon=epsilon,
             n_iter_no_change=n_iter_no_change, max_fun=max_fun, 
             threshold=threshold)
+    
+    def fit(self, X, y, sample_weight=None):
+        super().fit(X, y)
