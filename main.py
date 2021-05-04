@@ -111,19 +111,23 @@ def main():
 
     ###########################################################################
     
-    thresholds = np.linspace(0.8, 1.0, 21).astype(float).round(decimals=10)
+    thresholds = np.linspace(0.4, 1.0, 61).astype(float).round(decimals=10)
     models = []
     error_tr = []
     error_te = []
     prec = []
     reca = []
 
+    sample_weights = np.ones(y_tr.shape)
+    sample_weights[y_tr == Lens] = 1e4
+    print(sample_weights)
+
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)
     for threshold in thresholds:
         ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0)
         model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper, threshold = threshold)
-        model.fit(x_tr, y_tr)
+        model.fit(x_tr, y_tr, sample_weight=sample_weights)
         error_tr.append(model.error(x_tr, y_tr))
         error_te.append(model.error(x_te, y_te))
         prec.append(model.precision(x_te, y_te))
