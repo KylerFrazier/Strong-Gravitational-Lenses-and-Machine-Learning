@@ -26,5 +26,4 @@ class GradientBoostingBT(BaseBinaryThreshold, GradientBoostingClassifier):
                          warm_start=warm_start, 
                          validation_fraction=validation_fraction, 
                          n_iter_no_change=n_iter_no_change, tol=tol, 
-                         ccp_alpha=ccp_alpha)
-        self.threshold = threshold
+                         ccp_alpha=ccp_alpha, threshold=threshold)

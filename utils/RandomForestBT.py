@@ -26,5 +26,4 @@ class RandomForestBT(BaseBinaryThreshold, RandomForestClassifier):
                          n_jobs=n_jobs, random_state=random_state, 
                          verbose=verbose, warm_start=warm_start,  
                          class_weight=class_weight, ccp_alpha=ccp_alpha, 
-                         max_samples=max_samples)
-        self.threshold = threshold
+                         max_samples=max_samples, threshold=threshold)

@@ -63,7 +63,8 @@ def main():
     print("y_te.shape =", y_te.shape)
     
     estimators = [
-        ('rf',  RandomForestBT( n_estimators = 64, random_state = 0 )),
+        ('rf',  RandomForestBT( n_estimators = 64, 
+                                random_state = 0 )),
         ('svm', SupportVectorMachineBT( gamma = 2e-8, kernel = 'rbf', 
                                         probability=True, 
                                         random_state = 0 )),
@@ -74,7 +75,8 @@ def main():
         ('nn',  NeuralNetworkBT( hidden_layer_sizes = (28,),
                                max_iter=2000,
                                learning_rate = "adaptive",
-                               learning_rate_init = 0.0001, random_state = 0 )) ]
+                               learning_rate_init = 0.0001,
+                               random_state = 0 )) ]
 
     ###########################################################################
 
@@ -121,8 +123,8 @@ def main():
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)
     for threshold in thresholds:
-        ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0, threshold = threshold)
-        model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper)
+        ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0)
+        model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper, threshold = threshold)
         model.fit(x_tr, y_tr)
         error_tr.append(model.error(x_tr, y_tr))
         error_te.append(model.error(x_te, y_te))

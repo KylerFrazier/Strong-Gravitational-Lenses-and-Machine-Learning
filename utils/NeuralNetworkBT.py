@@ -27,5 +27,5 @@ class NeuralNetworkBT(BaseBinaryThreshold, MLPClassifier):
             early_stopping=early_stopping,
             validation_fraction=validation_fraction,
             beta_1=beta_1, beta_2=beta_2, epsilon=epsilon,
-            n_iter_no_change=n_iter_no_change, max_fun=max_fun)
-        self.threshold = threshold
+            n_iter_no_change=n_iter_no_change, max_fun=max_fun, 
+            threshold=threshold)

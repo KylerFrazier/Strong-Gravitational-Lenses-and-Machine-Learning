@@ -16,5 +16,5 @@ class SupportVectorMachineBT(BaseBinaryThreshold, SVC):
                          cache_size=cache_size, class_weight=class_weight, 
                          verbose=verbose, max_iter=max_iter, 
                          decision_function_shape=decision_function_shape, 
-                         break_ties=break_ties, random_state=random_state)
-        self.threshold = threshold
+                         break_ties=break_ties, random_state=random_state,
+                         threshold=threshold)
