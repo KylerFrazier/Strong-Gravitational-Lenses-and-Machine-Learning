@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Changes matplotlib's backend to write to file instead of display
 import matplotlib
 matplotlib.use('Agg')
