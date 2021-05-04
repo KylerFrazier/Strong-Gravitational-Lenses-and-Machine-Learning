@@ -1,6 +1,6 @@
 # Changes matplotlib's backend to write to file instead of display
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 # Modules for processing, math, and graphing
 import numpy as np
@@ -16,11 +16,11 @@ import warnings
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 # Change plot fonts and enable LaTeX
-# plt.rcParams.update({
-#     "text.usetex": True,
-#     "font.family": "serif",
-#     "font.serif": ["Computer Modern Roman"]
-# })
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"]
+})
 
 # Modules for machine learning
 from utils import ( EnsembleBT,
@@ -119,8 +119,7 @@ def main():
     prec = []
     reca = []
     sample_weights = np.ones(y_tr.shape)
-    sample_weights[y_tr == Lens] = 1e4
-    sample_weights[y_tr == QSO]  = 1e-4
+    sample_weights[y_tr == QSO] = 1e4
     print(sample_weights)
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)
