@@ -69,12 +69,12 @@ def main():
         ('gbt', GradientBoostingBT( learning_rate = 0.07, 
                                             n_estimators = 64, 
                                             loss = "deviance",  
-                                            random_state = 0 )), 
-        ('nn',  NeuralNetworkBT( hidden_layer_sizes = (28,),
-                               max_iter=2000,
-                               learning_rate = "adaptive",
-                               learning_rate_init = 0.0001,
-                               random_state = 0 )) ]
+                                            random_state = 0 )) ]
+        # ('nn',  NeuralNetworkBT( hidden_layer_sizes = (28,),
+        #                        max_iter=2000,
+        #                        learning_rate = "adaptive",
+        #                        learning_rate_init = 0.0001,
+        #                        random_state = 0 ))
 
     ###########################################################################
 
