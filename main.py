@@ -74,14 +74,13 @@ def main():
 
     ###########################################################################
 
-    ns = (2.0**np.arange(1,8)).astype(int)
-    n_best = trainer.find_n_linear(ns)
+    ns = (2.0**np.arange(4,12)).astype(int)
+    n_best = 2**6 #trainer.find_n_linear(ns)
     print(f"Best n = 2^{int(np.log2(n_best))}")
 
-    return
     ###########################################################################
     
-    thresholds = np.linspace(0.4, 1.0, 61).astype(float).round(decimals=10)
+    thresholds = np.linspace(0.7, 1.0, 31).astype(float).round(decimals=10)
     models = []
     error_tr = []
     error_te = []
@@ -89,11 +88,10 @@ def main():
     reca = []
 
     # best results so far: qso_weight = 1e2, threshold = 0.82
-    qso_weights = np.linspace(5e1,3.5e2,31)
+    # qso_weights = np.linspace(5e1,3.5e2,31)
 
     sample_weights = np.ones(y_tr.shape)
-    sample_weights[y_tr == LENS] = 1e4
-    print(sample_weights)
+    sample_weights[y_tr == LENS] = 1e2
 
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)

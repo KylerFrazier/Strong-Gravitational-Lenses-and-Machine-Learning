@@ -68,17 +68,23 @@ class EnsembleTrainer(object):
         with open(path.join(file_path, file_name), 'wb') as handle:
             pickle.dump(self, handle)
 
-    def find_n_linear(self, ns, verbose=True, save=True, plot=True):
+    def find_n_linear(self, ns, threshold=None, verbose=True, save=True, plot=True):
         models = []
         error_tr = []
         error_te = []
+
+        if hasattr(self, "threshold_best"):
+            threshold = self.threshold_best
+        elif threshold == None:
+            threshold = 0.80
 
         if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
         for n in ns:
             ens_wrapper = RandomForestBT(n_estimators = n, random_state = 0)
             model = EnsembleBT( estimators = self.base_models, 
-                                final_estimator = ens_wrapper )
+                                final_estimator = ens_wrapper,
+                                threshold = threshold )
             model.fit(self.x_tr, self.y_tr)
             error_tr.append(model.error(self.x_tr, self.y_tr))
             error_te.append(model.error(self.x_te, self.y_te))
