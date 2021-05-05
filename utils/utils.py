@@ -46,14 +46,14 @@ def plot_errors(x, x_label, error_tr, error_te, output_path):
     plt.clf()
 
 def plot_errors_3D(x, y, x_label, y_label, error_tr, error_te, path1, path2):
-    plt.contourf(x, y, error_tr, cmap=cm.coolwarm)
+    plt.contourf(x, y, error_tr.T, cmap=cm.coolwarm)
     plt.title(f"Model training error as a function of {x_label} and {y_label}")
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.savefig(path1)
     plt.clf()
 
-    plt.contourf(x, y, error_te, cmap=cm.coolwarm)
+    plt.contourf(x, y, error_te.T, cmap=cm.coolwarm)
     plt.title(f"Model testing error as a function of {x_label} and {y_label}")
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -225,6 +225,6 @@ class EnsembleTrainer(object):
                 weights, thresholds, "Weights", "Thresholds", 
                 error_tr, error_te, 
                 path.join(self.file_path, "weights_thresholds_training.pdf"),
-                path.join(self.file_path, "weights_thresholds_training.pdf") 
+                path.join(self.file_path, "weights_thresholds_testing.pdf") 
             )
         return weight_best, threshold_best
