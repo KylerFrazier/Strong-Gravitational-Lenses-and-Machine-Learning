@@ -73,10 +73,12 @@ def main():
                                      file_path="./output/ensemble/" )
 
     ###########################################################################
+    
+    weights = np.ones(y_tr.shape)
+    weights[y_tr == QSO] = 1e2
 
-    ns = (2.0**np.arange(4,12)).astype(int)
-    n_best = 2**6 #trainer.find_n_linear(ns)
-    print(f"Best n = 2^{int(np.log2(n_best))}")
+    ns = (2.0**np.arange(4,8)).astype(int)
+    n_best = trainer.find_n_linear(ns, weights=weights)
 
     ###########################################################################
     
@@ -91,7 +93,7 @@ def main():
     # qso_weights = np.linspace(5e1,3.5e2,31)
 
     sample_weights = np.ones(y_tr.shape)
-    sample_weights[y_tr == LENS] = 1e2
+    sample_weights[y_tr == QSO] = 1e2
 
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)

@@ -46,7 +46,8 @@ def plot_errors(x, x_label, error_tr, error_te, output_path):
 class EnsembleTrainer(object):
 
     def __init__( self, base_models, x_tr, y_tr, x_te, y_te, 
-                  file_path=".", file_name="EnsembleData.p" ):
+                  file_path=".", file_name="EnsembleData.p",
+                  model_name="Model.p" ):
         
         assert path.exists(file_path), f"File path {file_path} does not exist."
         
@@ -57,9 +58,14 @@ class EnsembleTrainer(object):
         self.data = {}
         self.file_path = file_path
         self.file_name = file_name
+        self.model_name = model_name
 
         self.model_best = None
         self.error_best = np.inf
+
+        self.n_best = None
+        self.threshold_best = None
+        self.weights_best = None
     
     def save(self, file_path=None, file_name=None):
         if file_path == None or file_name == None:
@@ -67,16 +73,28 @@ class EnsembleTrainer(object):
             file_name = self.file_name
         with open(path.join(file_path, file_name), 'wb') as handle:
             pickle.dump(self, handle)
+    
+    def save_model(self, file_path=None, model_name=None):
+        if file_path == None or model_name == None:
+            file_path = self.file_path
+            model_name = self.model_name
+        with open(path.join(file_path, model_name), 'wb') as handle:
+            pickle.dump(self.model_best, handle)
 
-    def find_n_linear(self, ns, threshold=None, verbose=True, save=True, plot=True):
+    def find_n_linear( self, ns, threshold=None, weights=None,
+                       verbose=True, save=True, plot=True):
         models = []
         error_tr = []
         error_te = []
 
-        if hasattr(self, "threshold_best"):
+        if self.threshold_best != None:
             threshold = self.threshold_best
         elif threshold == None:
             threshold = 0.80
+        if self.weights_best != None:
+            weights = self.weights_best
+        elif threshold == None:
+            weights = np.ones(self.y_tr.shape)
 
         if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
@@ -85,7 +103,7 @@ class EnsembleTrainer(object):
             model = EnsembleBT( estimators = self.base_models, 
                                 final_estimator = ens_wrapper,
                                 threshold = threshold )
-            model.fit(self.x_tr, self.y_tr)
+            model.fit(self.x_tr, self.y_tr, sample_weight=weights)
             error_tr.append(model.error(self.x_tr, self.y_tr))
             error_te.append(model.error(self.x_te, self.y_te))
             models.append(model)
@@ -105,6 +123,7 @@ class EnsembleTrainer(object):
 
         n_data = {
             "models"     : models,
+            "ns"         : ns,
             "error_tr"   : error_tr,
             "error_te"   : error_te,
             "model_best" : model_best,
