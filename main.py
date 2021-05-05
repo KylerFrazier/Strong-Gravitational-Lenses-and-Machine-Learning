@@ -74,23 +74,22 @@ def main():
 
     ###########################################################################
     
-    weights = np.ones(y_tr.shape)
-    weights[y_tr == QSO] = 1e2
+    temp_weight = 100
 
     ns = (2.0**np.arange(1,12+1)).astype(int)
-    n_best = trainer.find_n_linear(ns, weights=weights)
+    n_best = trainer.find_n_linear(ns, weight=temp_weight)
 
     ###########################################################################
     
     thresholds = np.linspace(0.7, 1.0, 31).astype(float).round(decimals=10)
-    models = []
-    error_tr = []
-    error_te = []
-    prec = []
-    reca = []
+    weights    = np.linspace( 50, 350, 31).astype(float).round(decimals=10)
+    weight_best, threshold_best = trainer.find_weights_and_threshold_grid( 
+                                          thresholds, weights )
 
-    # best results so far: qso_weight = 1e2, threshold = 0.78, n = 2^7
-    # qso_weights = np.linspace(5e1,3.5e2,31)
+    # Best results so far: 
+    #     n = 2^7
+    #     qso_weight = 1e2
+    #     threshold = 0.78
 
     sample_weights = np.ones(y_tr.shape)
     sample_weights[y_tr == QSO] = 1e2

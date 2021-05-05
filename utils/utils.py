@@ -98,7 +98,7 @@ class EnsembleTrainer(object):
         with open(path.join(file_path, model_name), 'wb') as handle:
             pickle.dump(self.model_best, handle)
 
-    def find_n_linear( self, ns, threshold=None, weights=None,
+    def find_n_linear( self, ns, threshold=None, weight=None,
                        verbose=True, save=True, plot=True ):
         models = np.empty((len(ns)), dtype=object)
         error_tr = np.zeros((len(ns)))
@@ -109,9 +109,12 @@ class EnsembleTrainer(object):
         elif threshold == None:
             threshold = 0.80
         if self.weight_best != None:
-            weights = self.weight_best
+            weight = self.weight_best
         elif threshold == None:
-            weights = np.ones(self.y_tr.shape)
+            weight = 1
+
+        sample_weight = np.ones(self.y_tr.shape)
+        sample_weight[self.y_tr == 1] = weight
 
         if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
@@ -120,7 +123,7 @@ class EnsembleTrainer(object):
             model = EnsembleBT( estimators = self.base_models, 
                                 final_estimator = ens_wrapper,
                                 threshold = threshold )
-            model.fit(self.x_tr, self.y_tr, sample_weight = weights)
+            model.fit(self.x_tr, self.y_tr, sample_weight = sample_weight)
             error_tr[i] = model.error(self.x_tr, self.y_tr)
             error_te[i] = model.error(self.x_te, self.y_te)
             models[i] = model
