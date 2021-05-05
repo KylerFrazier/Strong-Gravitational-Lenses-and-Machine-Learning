@@ -1,4 +1,5 @@
 import pickle
+import multiprocessing as mp
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import cm
@@ -6,6 +7,7 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from os import path
 from utils import EnsembleBT, RandomForestBT
+from time import time
 
 
 def load_binary_data(feature_path, class_path, classes=[0,1], verbose=False):
@@ -59,6 +61,18 @@ def plot_errors_3D(x, y, x_label, y_label, error_tr, error_te, path1, path2):
     plt.ylabel(y_label)
     plt.savefig(path2)
     plt.clf()
+
+def single_fit(trainer, n, sample_weight, threshold):
+    ens_wrapper = RandomForestBT( n_estimators = n, random_state = 0 )
+    model = EnsembleBT( estimators = trainer.base_models, 
+                        final_estimator = ens_wrapper,
+                        threshold = threshold )
+    model.fit(trainer.x_tr, trainer.y_tr, sample_weight = sample_weight)
+    return (
+        model.error(trainer.x_tr, trainer.y_tr), 
+        model.error(trainer.x_te, trainer.y_te),
+        model
+    )
 
 class EnsembleTrainer(object):
 
@@ -177,6 +191,21 @@ class EnsembleTrainer(object):
             sample_weight = np.ones(self.y_tr.shape)
             sample_weight[self.y_tr == 0] = weight
 
+            start = time()
+
+            with mp.Pool() as pool:
+                thresh_results = [pool.apply(
+                    single_fit, args=(self, n, sample_weight, threshold)
+                ) for threshold in thresholds]
+
+            for j, result in enumerate(thresh_results):
+                error_tr[i,j] = result[0]
+                error_te[i,j] = result[1]
+                models[i,j]   = result[2]
+            
+            print(time()-start)
+            start = time()
+
             for j, threshold in enumerate(thresholds):
                 ens_wrapper = RandomForestBT( n_estimators = n, 
                                               random_state = 0 )
@@ -187,6 +216,9 @@ class EnsembleTrainer(object):
                 error_tr[i,j] = model.error(self.x_tr, self.y_tr)
                 error_te[i,j] = model.error(self.x_te, self.y_te)
                 models[i,j] = model
+            
+            print(time()-start)
+            
             if verbose: print('> ', end='', flush=True)
         if verbose: print(']')
 

@@ -76,13 +76,13 @@ def main():
     
     temp_weight = 100
 
-    ns = (2.0**np.arange(1,12+1)).astype(int)
+    ns = (2.0**np.arange(6,8+1)).astype(int)
     n_best = trainer.find_n_linear(ns, weight=temp_weight)
 
     ###########################################################################
     
-    thresholds = np.linspace(0.7, 1.0, 31).astype(float).round(decimals=10)
-    weights    = np.linspace( 50, 350, 31).astype(float).round(decimals=10)
+    thresholds = np.linspace(0.7, 1.0, 2).astype(float).round(decimals=10)
+    weights    = np.linspace( 50, 350, 2).astype(float).round(decimals=10)
     weight_best, threshold_best = trainer.find_weights_and_threshold_grid( 
                                           thresholds, weights )
 
