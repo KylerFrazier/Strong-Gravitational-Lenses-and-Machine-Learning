@@ -82,7 +82,7 @@ class EnsembleTrainer(object):
             pickle.dump(self.model_best, handle)
 
     def find_n_linear( self, ns, threshold=None, weights=None,
-                       verbose=True, save=True, plot=True):
+                       verbose=True, save=True, plot=True ):
         models = []
         error_tr = []
         error_te = []
@@ -103,7 +103,7 @@ class EnsembleTrainer(object):
             model = EnsembleBT( estimators = self.base_models, 
                                 final_estimator = ens_wrapper,
                                 threshold = threshold )
-            model.fit(self.x_tr, self.y_tr, sample_weight=weights)
+            model.fit(self.x_tr, self.y_tr, sample_weight = weights)
             error_tr.append(model.error(self.x_tr, self.y_tr))
             error_te.append(model.error(self.x_te, self.y_te))
             models.append(model)
@@ -136,5 +136,62 @@ class EnsembleTrainer(object):
 
         if plot:
             plot_errors(ns, "$n$", error_tr, error_te, "output/ensemble/n.pdf")
+        
+        return n_best
+    
+    def find_weights_and_threshold_grid( self, thresholds, weights, n=None,
+                                         verbose=True, save=True, plot=True ):
+        models = np.empty((len(weights), len(thresholds)))
+        error_tr = np.zeros((len(weights), len(thresholds)))
+        error_te = np.zeros((len(weights), len(thresholds)))
+
+        if self.n_best != None:
+            n = self.n_best
+        elif n == None:
+            n = 2**7
+
+        if verbose: print( ' '*11 + '_'*(len(weights)*2+1) + '\n' + \
+                           "Progress: [ ", end='', flush=True )
+        for i, weight in enumerate(weights):
+            for j, threshold in enumerate(thresholds):
+                ens_wrapper = RandomForestBT( n_estimators = n, 
+                                              random_state = 0 )
+                model = EnsembleBT( estimators = self.base_models, 
+                                    final_estimator = ens_wrapper,
+                                    threshold = threshold )
+                model.fit(self.x_tr, self.y_tr, sample_weight = weight)
+                error_tr[i,j] = model.error(self.x_tr, self.y_tr)
+                error_te[i,j] = model.error(self.x_te, self.y_te)
+                models[i,j] = model
+            if verbose: print('> ', end='', flush=True)
+        if verbose: print(']')
+
+        model_best = models[np.argmin(error_te)]
+        n_best = ns[np.argmin(error_te)]
+        self.n_best = n_best
+
+        if np.min(error_te) < self.error_best:
+            self.error_best = np.min(error_te)
+            self.model_best = model_best
+
+        if verbose:
+            print(f"Best n: {n_best}\n")
+
+        weights_and_threshold_data = {
+            "models"     : models,
+            "weights"    : weights,
+            "thresholds" : thresholds,
+            "error_tr"   : error_tr,
+            "error_te"   : error_te,
+            "model_best" : model_best,
+            "n_best"     : n_best
+        }
+        self.data["weights_and_threshold"] = weights_and_threshold_data
+
+        if save:
+            self.save()
+
+        # if plot:
+        #     plot_errors(ns, "$n$", error_tr, error_te, "output/ensemble/n.pdf")
         
         return n_best

@@ -77,7 +77,7 @@ def main():
     weights = np.ones(y_tr.shape)
     weights[y_tr == QSO] = 1e2
 
-    ns = (2.0**np.arange(4,8)).astype(int)
+    ns = (2.0**np.arange(1,12+1)).astype(int)
     n_best = trainer.find_n_linear(ns, weights=weights)
 
     ###########################################################################
@@ -89,7 +89,7 @@ def main():
     prec = []
     reca = []
 
-    # best results so far: qso_weight = 1e2, threshold = 0.82
+    # best results so far: qso_weight = 1e2, threshold = 0.78, n = 2^7
     # qso_weights = np.linspace(5e1,3.5e2,31)
 
     sample_weights = np.ones(y_tr.shape)
@@ -122,14 +122,6 @@ def main():
     plt.clf()
     
     ###########################################################################
-    
-    plt.plot(thresholds, 0.1*np.array(prec), c="green")
-    plt.plot(thresholds, reca, c="orange")
-    plt.title("Precision vs Recall")
-    plt.xlabel("Threshold")
-    plt.ylabel("Score")
-    plt.savefig('output/ensemble/precision_vs_recall.pdf')
-    plt.clf()
     
     ###########################################################################
     
