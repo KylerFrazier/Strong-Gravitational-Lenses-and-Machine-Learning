@@ -1,10 +1,12 @@
 import pickle
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import cm
 from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from os import path
 from utils import EnsembleBT, RandomForestBT
+
 
 def load_binary_data(feature_path, class_path, classes=[0,1], verbose=False):
     data_features = read_csv( feature_path, header=0, quotechar='"', 
@@ -43,6 +45,21 @@ def plot_errors(x, x_label, error_tr, error_te, output_path):
     plt.savefig(output_path)
     plt.clf()
 
+def plot_errors_3D(x, y, x_label, y_label, error_tr, error_te, path1, path2):
+    plt.contourf(x, y, error_tr, cmap=cm.coolwarm)
+    plt.title(f"Model training error as a function of {x_label} and {y_label}")
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(path1)
+    plt.clf()
+
+    plt.contourf(x, y, error_te, cmap=cm.coolwarm)
+    plt.title(f"Model testing error as a function of {x_label} and {y_label}")
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(path2)
+    plt.clf()
+
 class EnsembleTrainer(object):
 
     def __init__( self, base_models, x_tr, y_tr, x_te, y_te, 
@@ -64,8 +81,8 @@ class EnsembleTrainer(object):
         self.error_best = np.inf
 
         self.n_best = None
+        self.weight_best = None
         self.threshold_best = None
-        self.weights_best = None
     
     def save(self, file_path=None, file_name=None):
         if file_path == None or file_name == None:
@@ -83,30 +100,30 @@ class EnsembleTrainer(object):
 
     def find_n_linear( self, ns, threshold=None, weights=None,
                        verbose=True, save=True, plot=True ):
-        models = []
-        error_tr = []
-        error_te = []
+        models = np.empty((len(ns)), dtype=object)
+        error_tr = np.zeros((len(ns)))
+        error_te = np.zeros((len(ns)))
 
         if self.threshold_best != None:
             threshold = self.threshold_best
         elif threshold == None:
             threshold = 0.80
-        if self.weights_best != None:
-            weights = self.weights_best
+        if self.weight_best != None:
+            weights = self.weight_best
         elif threshold == None:
             weights = np.ones(self.y_tr.shape)
 
         if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
-        for n in ns:
+        for i, n in enumerate(ns):
             ens_wrapper = RandomForestBT(n_estimators = n, random_state = 0)
             model = EnsembleBT( estimators = self.base_models, 
                                 final_estimator = ens_wrapper,
                                 threshold = threshold )
             model.fit(self.x_tr, self.y_tr, sample_weight = weights)
-            error_tr.append(model.error(self.x_tr, self.y_tr))
-            error_te.append(model.error(self.x_te, self.y_te))
-            models.append(model)
+            error_tr[i] = model.error(self.x_tr, self.y_tr)
+            error_te[i] = model.error(self.x_te, self.y_te)
+            models[i] = model
             if verbose: print('> ', end='', flush=True)
         if verbose: print(']')
 
@@ -135,13 +152,14 @@ class EnsembleTrainer(object):
             self.save()
 
         if plot:
-            plot_errors(ns, "$n$", error_tr, error_te, "output/ensemble/n.pdf")
-        
+            plot_errors( ns, "$n$", error_tr, error_te, 
+                         path.join(self.file_path, "n.pdf") )
+
         return n_best
-    
+
     def find_weights_and_threshold_grid( self, thresholds, weights, n=None,
                                          verbose=True, save=True, plot=True ):
-        models = np.empty((len(weights), len(thresholds)))
+        models = np.empty((len(weights), len(thresholds)), dtype=object)
         error_tr = np.zeros((len(weights), len(thresholds)))
         error_te = np.zeros((len(weights), len(thresholds)))
 
@@ -153,45 +171,57 @@ class EnsembleTrainer(object):
         if verbose: print( ' '*11 + '_'*(len(weights)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
         for i, weight in enumerate(weights):
+            sample_weight = np.ones(self.y_tr.shape)
+            sample_weight[self.y_tr == 1] = weight
+
             for j, threshold in enumerate(thresholds):
                 ens_wrapper = RandomForestBT( n_estimators = n, 
                                               random_state = 0 )
                 model = EnsembleBT( estimators = self.base_models, 
                                     final_estimator = ens_wrapper,
                                     threshold = threshold )
-                model.fit(self.x_tr, self.y_tr, sample_weight = weight)
+                model.fit(self.x_tr, self.y_tr, sample_weight = sample_weight)
                 error_tr[i,j] = model.error(self.x_tr, self.y_tr)
                 error_te[i,j] = model.error(self.x_te, self.y_te)
                 models[i,j] = model
             if verbose: print('> ', end='', flush=True)
         if verbose: print(']')
 
-        model_best = models[np.argmin(error_te)]
-        n_best = ns[np.argmin(error_te)]
-        self.n_best = n_best
+        ind = np.unravel_index(np.argmin(error_te), error_te.shape)
+        model_best = models[ind]
+        weight_best = weights[ind[0]]
+        threshold_best = threshold[ind[1]]
+        self.weight_best = weight_best
+        self.threshold_best = threshold_best
 
-        if np.min(error_te) < self.error_best:
-            self.error_best = np.min(error_te)
+        if error_te[ind] < self.error_best:
+            self.error_best = error_te[ind]
             self.model_best = model_best
 
         if verbose:
-            print(f"Best n: {n_best}\n")
+            print(f"Best weights:   {weight_best}")
+            print(f"Best threshold: {threshold_best}\n")
 
         weights_and_threshold_data = {
-            "models"     : models,
-            "weights"    : weights,
-            "thresholds" : thresholds,
-            "error_tr"   : error_tr,
-            "error_te"   : error_te,
-            "model_best" : model_best,
-            "n_best"     : n_best
+            "models"         : models,
+            "weights"        : weights,
+            "thresholds"     : thresholds,
+            "error_tr"       : error_tr,
+            "error_te"       : error_te,
+            "model_best"     : model_best,
+            "weight_best"   : weight_best,
+            "threshold_best" : threshold_best
         }
         self.data["weights_and_threshold"] = weights_and_threshold_data
 
         if save:
             self.save()
 
-        # if plot:
-        #     plot_errors(ns, "$n$", error_tr, error_te, "output/ensemble/n.pdf")
-        
-        return n_best
+        if plot:
+            plot_errors_3D( 
+                weights, thresholds, "Weights", "Thresholds", 
+                error_tr, error_te, 
+                path.join(self.file_path, "weights_thresholds_training.pdf"),
+                path.join(self.file_path, "weights_thresholds_training.pdf") 
+            )
+        return weight_best, threshold_best
