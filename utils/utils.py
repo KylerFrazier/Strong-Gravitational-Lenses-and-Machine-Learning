@@ -114,7 +114,7 @@ class EnsembleTrainer(object):
             weight = 1
 
         sample_weight = np.ones(self.y_tr.shape)
-        sample_weight[self.y_tr == 1] = weight
+        sample_weight[self.y_tr == 0] = weight
 
         if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
@@ -175,7 +175,7 @@ class EnsembleTrainer(object):
                            "Progress: [ ", end='', flush=True )
         for i, weight in enumerate(weights):
             sample_weight = np.ones(self.y_tr.shape)
-            sample_weight[self.y_tr == 1] = weight
+            sample_weight[self.y_tr == 0] = weight
 
             for j, threshold in enumerate(thresholds):
                 ens_wrapper = RandomForestBT( n_estimators = n, 
@@ -193,7 +193,7 @@ class EnsembleTrainer(object):
         ind = np.unravel_index(np.argmin(error_te), error_te.shape)
         model_best = models[ind]
         weight_best = weights[ind[0]]
-        threshold_best = threshold[ind[1]]
+        threshold_best = thresholds[ind[1]]
         self.weight_best = weight_best
         self.threshold_best = threshold_best
 
