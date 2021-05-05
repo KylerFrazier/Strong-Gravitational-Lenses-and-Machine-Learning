@@ -5,8 +5,6 @@
 # Modules for processing, math, and graphing
 import numpy as np
 from matplotlib import pyplot as plt
-from pandas import read_csv
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import ( confusion_matrix, 
                               plot_confusion_matrix )
 
@@ -22,93 +20,65 @@ plt.rcParams.update({
     "font.serif": ["Computer Modern Roman"]
 })
 
-# Modules for machine learning
+# Modules for machine learning and other utilities
 from utils import ( EnsembleBT,
                     RandomForestBT,
                     SupportVectorMachineBT,
                     GradientBoostingBT,
                     NeuralNetworkBT )
+from utils import utils
 
 def main():
 
     ###########################################################################
 
+    # Approximations of the larger data set
     n_real_data_size = 2000000
     n_predicted_lenses = 2000
 
-    data_features = read_csv("data/ADavailableData.csv", header=0, quotechar='"', skipinitialspace=True).to_numpy()
-    data_classes = read_csv("data/ADlabel.csv", header=0, quotechar='"', skipinitialspace=True).to_numpy()
-
-    # The following line assumes that the features and classes are ordered properly
-    x, y = data_features[:,1:], np.ravel(data_classes[:,1:])
-
-    # Renaming classes to be binary and checking that they match
+    # Renaming classes to be binary to keep things clean
     classes = np.array(["QSO", "Lens"])
     QSO = np.where(classes == "QSO")[0][0]
-    Lens = np.where(classes == "Lens")[0][0]
-    num_entries_per_class = 0
-    for i in range(len(classes)):
-        y[y == classes[i]] = i
-        num_entries_per_class += len(y[y == i])
-    y = y.astype(int)
-    assert num_entries_per_class == len(y) , f"The classes should be in {classes}"
+    LENS = np.where(classes == "Lens")[0][0]
 
-    x_tr, x_te, y_tr, y_te = train_test_split(x, y, random_state=0, stratify=y)
-    print("Classes:", classes)
-    print("x_tr.shape =", x_tr.shape)
-    print("x_te.shape =", x_te.shape)
-    print("y_tr.shape =", y_tr.shape)
-    print("y_te.shape =", y_te.shape)
+    # Loading data
+    x_tr, x_te, y_tr, y_te = utils.load_binary_data(
+        "data/ADavailableData.csv",
+        "data/ADlabel.csv",
+        classes, verbose=True )
+
+    base_models = [
+        ('rf',  RandomForestBT( 
+            n_estimators = 64, 
+            random_state = 0 )),
+        ('svm', SupportVectorMachineBT( 
+            gamma = 2e-8, 
+            kernel = 'rbf', 
+            probability=True, 
+            random_state = 0 )),
+        ('gbt', GradientBoostingBT( 
+            learning_rate = 0.07, 
+            n_estimators = 64, 
+            loss = "deviance",  
+            random_state = 0 )) 
+    ]
+        # ('nn',  NeuralNetworkBT( 
+        #     hidden_layer_sizes = (28,),
+        #     max_iter=2000,
+        #     learning_rate = "adaptive",
+        #     learning_rate_init = 0.0001,
+        #     random_state = 0 ))
     
-    estimators = [
-        ('rf',  RandomForestBT( n_estimators = 64, 
-                                random_state = 0 )),
-        ('svm', SupportVectorMachineBT( gamma = 2e-8, kernel = 'rbf', 
-                                        probability=True, 
-                                        random_state = 0 )),
-        ('gbt', GradientBoostingBT( learning_rate = 0.07, 
-                                            n_estimators = 64, 
-                                            loss = "deviance",  
-                                            random_state = 0 )) ]
-        # ('nn',  NeuralNetworkBT( hidden_layer_sizes = (28,),
-        #                        max_iter=2000,
-        #                        learning_rate = "adaptive",
-        #                        learning_rate_init = 0.0001,
-        #                        random_state = 0 ))
+    trainer = utils.EnsembleTrainer( base_models, x_tr, y_tr, x_te, y_te, 
+                                     file_path="./output/ensemble/" )
 
     ###########################################################################
 
     ns = (2.0**np.arange(1,8)).astype(int)
-    # ns = (2.0**np.arange(6,8)).astype(int)
-    models = []
-    error_tr = []
-    error_te = []
-
-    print(' '*11 + '_'*(len(ns)*2+1))
-    print("Progress: [ ", end='', flush=True)
-    for n in ns:
-        ens_wrapper = RandomForestBT(n_estimators = n, random_state = 0)
-        model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper)
-        model.fit(x_tr, y_tr)
-        error_tr.append(model.error(x_tr, y_tr))
-        error_te.append(model.error(x_tr, y_tr))
-        models.append(model)
-        print('> ', end='', flush=True)
-    print(']')
-
-    model_best = models[np.argmin(error_te)]
-    n_best = ns[np.argmin(error_te)]
+    n_best = trainer.find_n_linear(ns)
     print(f"Best n = 2^{int(np.log2(n_best))}")
 
-    plt.semilogx(ns, error_tr, c="blue", base=2, label="Training Error")
-    plt.semilogx(ns, error_te, c="red",  base=2, label="Testing Error" )
-    plt.title("Model error as a function of $n$")
-    plt.xlabel("$n$")
-    plt.ylabel("Error")
-    plt.legend()
-    plt.savefig('output/ensemble/n.pdf')
-    plt.clf()
-
+    return
     ###########################################################################
     
     thresholds = np.linspace(0.4, 1.0, 61).astype(float).round(decimals=10)
@@ -122,14 +92,14 @@ def main():
     qso_weights = np.linspace(5e1,3.5e2,31)
 
     sample_weights = np.ones(y_tr.shape)
-    sample_weights[y_tr == Lens] = 1e4
+    sample_weights[y_tr == LENS] = 1e4
     print(sample_weights)
 
     print(' '*11 + '_'*(len(thresholds)*2+1))
     print("Progress: [ ", end='', flush=True)
     for threshold in thresholds:
         ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0)
-        model = EnsembleBT(estimators = estimators, final_estimator = ens_wrapper, threshold = threshold)
+        model = EnsembleBT(estimators = base_models, final_estimator = ens_wrapper, threshold = threshold)
         model.fit(x_tr, y_tr, sample_weight=sample_weights)
         error_tr.append(model.error(x_tr, y_tr))
         error_te.append(model.error(x_te, y_te))
@@ -183,10 +153,10 @@ def main():
 
     ###########################################################################
 
-    y_pr_tr = model_best.predict_proba(x_tr).T[Lens]
+    y_pr_tr = model_best.predict_proba(x_tr).T[LENS]
     plt.figure()
     plt.hist(y_pr_tr[y_tr == QSO], bins = 15, alpha = 0.5, label = "QSO")
-    plt.hist(y_pr_tr[y_tr == Lens], bins = 15, alpha = 0.5, label = "Lens")
+    plt.hist(y_pr_tr[y_tr == LENS], bins = 15, alpha = 0.5, label = "Lens")
     plt.legend(loc='upper right')
     plt.title("Histogram of Best Model's Scores || X-Train")
     plt.xlabel("Score || Probabalistic guess of it being a Lens")
@@ -194,10 +164,10 @@ def main():
     plt.savefig('output/ensemble/hist_train.pdf')
     plt.clf()
 
-    y_pr_te = model_best.predict_proba(x_te).T[Lens]
+    y_pr_te = model_best.predict_proba(x_te).T[LENS]
     plt.figure()
     plt.hist(y_pr_te[y_te == QSO], bins = 10, alpha = 0.5, label = "QSO")
-    plt.hist(y_pr_te[y_te == Lens], bins = 10, alpha = 0.5, label = "Lens")
+    plt.hist(y_pr_te[y_te == LENS], bins = 10, alpha = 0.5, label = "Lens")
     plt.legend(loc='upper right')
     plt.title("Histogram of Best Model's Scores || X-Test")
     plt.xlabel("Score || Probabalistic guess of it being a Lens")
