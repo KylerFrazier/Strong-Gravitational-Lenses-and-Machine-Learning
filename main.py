@@ -91,43 +91,16 @@ def main():
     #     qso_weight = 1e2
     #     threshold = 0.78
 
-    sample_weights = np.ones(y_tr.shape)
-    sample_weights[y_tr == QSO] = 1e2
-
-    print(' '*11 + '_'*(len(thresholds)*2+1))
-    print("Progress: [ ", end='', flush=True)
-    for threshold in thresholds:
-        ens_wrapper = RandomForestBT(n_estimators = n_best, random_state = 0)
-        model = EnsembleBT(estimators = base_models, final_estimator = ens_wrapper, threshold = threshold)
-        model.fit(x_tr, y_tr, sample_weight=sample_weights)
-        error_tr.append(model.error(x_tr, y_tr))
-        error_te.append(model.error(x_te, y_te))
-        prec.append(model.precision(x_te, y_te))
-        reca.append(model.recall(x_te, y_te))
-        models.append(model)
-        print('> ', end='', flush=True)
-    print(']')
-
-    model_best = models[np.argmin(error_te)]
-    threshold_best = thresholds[np.argmin(error_te)]
-
-    plt.plot(thresholds, error_tr, c="blue", label="Training Error")
-    plt.plot(thresholds, error_te, c="red", label="Testing Error")
-    plt.title("Model error as a function of threshold")
-    plt.xlabel("Threshold")
-    plt.ylabel("Error")
-    plt.legend()
-    plt.savefig('output/ensemble/threshold.pdf')
-    plt.clf()
-    
     ###########################################################################
     
     ###########################################################################
     
-    print("Best Error:", model_best.error(x_te, y_te))
+    print("Best Error:", trainer.model_best.error(x_te, y_te))
     print("Best n:", n_best)
+    print("Best weight:", weight_best)
     print("Best threshold:", threshold_best)
-    fp_best, tp_best = np.ravel(confusion_matrix(y_te, model_best.predict(x_te), normalize="true")[:,1])
+    fp_best, tp_best = np.ravel(confusion_matrix(y_te, 
+        trainer.model_best.predict(x_te), normalize="true")[:,1])
     print()
     print("Best False Positive:", fp_best)
     print("Best True Positive:", tp_best)
@@ -137,14 +110,15 @@ def main():
     print("    Selected Lenses =", int(n_predicted_lenses*tp_best))
 
 
-    disp = plot_confusion_matrix(model_best, x_te, y_te, cmap=plt.cm.Blues, normalize="true", display_labels=classes) 
+    disp = plot_confusion_matrix(trainer.model_best, x_te, y_te, 
+        cmap=plt.cm.Blues, normalize="true", display_labels=classes) 
     disp.ax_.set_title("Ensenmble Model || CM Normalized")
     plt.savefig('output/ensemble/CM.pdf')
     plt.clf()
 
     ###########################################################################
 
-    y_pr_tr = model_best.predict_proba(x_tr).T[LENS]
+    y_pr_tr = trainer.model_best.predict_proba(x_tr).T[LENS]
     plt.figure()
     plt.hist(y_pr_tr[y_tr == QSO], bins = 15, alpha = 0.5, label = "QSO")
     plt.hist(y_pr_tr[y_tr == LENS], bins = 15, alpha = 0.5, label = "Lens")
@@ -155,7 +129,7 @@ def main():
     plt.savefig('output/ensemble/hist_train.pdf')
     plt.clf()
 
-    y_pr_te = model_best.predict_proba(x_te).T[LENS]
+    y_pr_te = trainer.model_best.predict_proba(x_te).T[LENS]
     plt.figure()
     plt.hist(y_pr_te[y_te == QSO], bins = 10, alpha = 0.5, label = "QSO")
     plt.hist(y_pr_te[y_te == LENS], bins = 10, alpha = 0.5, label = "Lens")
