@@ -68,7 +68,7 @@ class ProgressBar(object):
         print(' '*11 + '_'*(length*2+1))
         print("Progress: [ ", end='', flush=True)
     
-    def incriment(self):
+    def increment(self):
         if self.tics < self.length:
             print('> ', end='', flush=True)
             self.tics += 1
@@ -141,7 +141,7 @@ class EnsembleTrainer(object):
             error_tr[i] = model.error(self.x_tr, self.y_tr)
             error_te[i] = model.error(self.x_te, self.y_te)
             models[i] = model
-            if verbose: bar.incriment()
+            if verbose: bar.increment()
 
         model_best = models[np.argmin(error_te)]
         n_best = ns[np.argmin(error_te)]
@@ -206,7 +206,7 @@ class EnsembleTrainer(object):
                     error_best = error_test
                     model_best = model
                     ind_best = (i,j)
-            if verbose: bar.incriment()
+            if verbose: bar.increment()
 
         ind = np.unravel_index(np.argmin(error_te), error_te.shape)
         if ind != ind_best: 
