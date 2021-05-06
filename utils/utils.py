@@ -69,7 +69,7 @@ class ProgressBar(object):
         print(' '*11 + '_'*(length*2+1))
         print("Progress: [ ", end='', flush=True)
     
-    def incriment(self):
+    def increment(self):
         if self.tics < self.length:
             print('> ', end='', flush=True)
             self.tics += 1
@@ -104,7 +104,7 @@ def fit_threshold_process( trainer, n, weight, thresholds,
             error_best = error_test
             model_best = model
             ind_best = j
-        if verbose: bar2.incriment()
+        if verbose: bar2.increment()
     
     if isinstance(bar, ProgressBar) and not verbose:
         bar.increment()
