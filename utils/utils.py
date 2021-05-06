@@ -61,16 +61,60 @@ def plot_errors_3D(x, y, x_label, y_label, error_tr, error_te, path1, path2):
     plt.savefig(path2)
     plt.clf()
 
-def single_fit(trainer, n, sample_weight, threshold):
-    ens_wrapper = RandomForestBT( n_estimators = n, random_state = 0 )
-    model = EnsembleBT( estimators = trainer.base_models, 
-                        final_estimator = ens_wrapper,
-                        threshold = threshold )
-    model.fit(trainer.x_tr, trainer.y_tr, sample_weight = sample_weight)
+class ProgressBar(object):
+
+    def __init__(self, length):
+        self.length = length
+        self.tics = 0
+        print(' '*11 + '_'*(length*2+1))
+        print("Progress: [ ", end='', flush=True)
+    
+    def incriment(self):
+        if self.tics < self.length:
+            print('> ', end='', flush=True)
+            self.tics += 1
+            if self.tics >= self.length: 
+                print(']')
+
+
+def fit_threshold_process( trainer, n, weight, thresholds,
+                           bar=None, verbose=False ):
+    error_tr = np.zeros(len(thresholds))
+    error_te = np.zeros(len(thresholds))
+    sample_weight = np.ones(trainer.y_tr.shape)
+    sample_weight[trainer.y_tr == 0] = weight
+
+    model_best = None
+    error_best = np.inf
+    ind_best = 0
+
+    if verbose: bar2 = ProgressBar(len(thresholds))
+    for j, threshold in enumerate(thresholds):
+        ens_wrapper = RandomForestBT( n_estimators = n, 
+                                        random_state = 0 )
+        model = EnsembleBT( estimators = trainer.base_models, 
+                            final_estimator = ens_wrapper,
+                            threshold = threshold )
+        model.fit(trainer.x_tr, trainer.y_tr, sample_weight = sample_weight)
+
+        error_test = model.error(trainer.x_te, trainer.y_te)
+        error_tr[j] = model.error(trainer.x_tr, trainer.y_tr)
+        error_te[j] = error_test
+        if error_test < error_best:
+            error_best = error_test
+            model_best = model
+            ind_best = j
+        if verbose: bar2.incriment()
+    
+    if isinstance(bar, ProgressBar) and not verbose:
+        bar.increment()
+    
     return (
-        model.error(trainer.x_tr, trainer.y_tr), 
-        model.error(trainer.x_te, trainer.y_te),
-        model
+        error_tr,
+        error_te,
+        error_best,
+        model_best,
+        ind_best
     )
 
 class EnsembleTrainer(object):
@@ -129,8 +173,7 @@ class EnsembleTrainer(object):
         sample_weight = np.ones(self.y_tr.shape)
         sample_weight[self.y_tr == 0] = weight
 
-        if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
-                           "Progress: [ ", end='', flush=True )
+        if verbose: bar = ProgressBar(len(ns))
         for i, n in enumerate(ns):
             ens_wrapper = RandomForestBT(n_estimators = n, random_state = 0)
             model = EnsembleBT( estimators = self.base_models, 
@@ -140,7 +183,7 @@ class EnsembleTrainer(object):
             error_tr[i] = model.error(self.x_tr, self.y_tr)
             error_te[i] = model.error(self.x_te, self.y_te)
             models[i] = model
-            if verbose: print('> ', end='', flush=True)
+            if verbose: bar.increment()
         if verbose: print(']')
 
         model_best = models[np.argmin(error_te)]
@@ -155,7 +198,6 @@ class EnsembleTrainer(object):
             print(f"Best n: {n_best}\n")
 
         n_data = {
-            "models"     : models,
             "ns"         : ns,
             "error_tr"   : error_tr,
             "error_te"   : error_te,
@@ -175,7 +217,6 @@ class EnsembleTrainer(object):
 
     def find_weights_and_threshold_grid( self, thresholds, weights, n=None,
                                          verbose=True, save=True, plot=True ):
-        models = np.empty((len(weights), len(thresholds)), dtype=object)
         error_tr = np.zeros((len(weights), len(thresholds)))
         error_te = np.zeros((len(weights), len(thresholds)))
 
@@ -184,27 +225,29 @@ class EnsembleTrainer(object):
         elif n == None:
             n = 2**7
 
-        if verbose: print( ' '*11 + '_'*(len(weights)*2+1) + '\n' + \
-                           "Progress: [ ", end='', flush=True )
-        for i, weight in enumerate(weights):
-            sample_weight = np.ones(self.y_tr.shape)
-            sample_weight[self.y_tr == 0] = weight
+        error_best = np.inf
+        model_best = None
+        ind_best = (0,0)
 
-            with mp.Pool(mp.cpu_count()) as pool:
-                thresh_results = [pool.apply(
-                    single_fit, args=(self, n, sample_weight, threshold)
-                ) for threshold in thresholds]
+        bar = ProgressBar(len(weights))
+        with mp.Pool() as pool:
+            thresh_results = [pool.apply(fit_threshold_process, args=(
+                self, n, weight, thresholds, bar
+            )) for weight in weights]
 
-            for j, result in enumerate(thresh_results):
-                error_tr[i,j] = result[0]
-                error_te[i,j] = result[1]
-                models[i,j]   = result[2]
-            
-            if verbose: print('> ', end='', flush=True)
-        if verbose: print(']')
+        for i, result in enumerate(thresh_results):
+            e_tr, e_te, e_best, m_best, j = result
+            error_tr[i,:] = e_tr
+            error_te[i,:] = e_te
+            if e_best < error_best:
+                error_best = e_best
+                model_best = m_best
+                ind_best = i,j
 
         ind = np.unravel_index(np.argmin(error_te), error_te.shape)
-        model_best = models[ind]
+        if ind != ind_best: 
+            print("The selected model didn't match the selected error values!")
+
         weight_best = weights[ind[0]]
         threshold_best = thresholds[ind[1]]
         self.weight_best = weight_best
@@ -219,13 +262,12 @@ class EnsembleTrainer(object):
             print(f"Best threshold: {threshold_best}\n")
 
         weights_and_threshold_data = {
-            "models"         : models,
             "weights"        : weights,
             "thresholds"     : thresholds,
             "error_tr"       : error_tr,
             "error_te"       : error_te,
             "model_best"     : model_best,
-            "weight_best"   : weight_best,
+            "weight_best"    : weight_best,
             "threshold_best" : threshold_best
         }
         self.data["weights_and_threshold"] = weights_and_threshold_data
@@ -238,6 +280,6 @@ class EnsembleTrainer(object):
                 weights, thresholds, "Weights", "Thresholds", 
                 error_tr, error_te, 
                 path.join(self.file_path, "weights_thresholds_training.pdf"),
-                path.join(self.file_path, "weights_thresholds_training.pdf") 
+                path.join(self.file_path, "weights_thresholds_testing.pdf") 
             )
         return weight_best, threshold_best

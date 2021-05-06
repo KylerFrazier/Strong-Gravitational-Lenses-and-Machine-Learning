@@ -5,6 +5,7 @@
 # Modules for processing, math, and graphing
 import numpy as np
 from matplotlib import pyplot as plt
+from os import path
 from sklearn.metrics import ( confusion_matrix, 
                               plot_confusion_matrix )
 
@@ -31,6 +32,8 @@ from utils import utils
 def main():
 
     ###########################################################################
+
+    output_path = "./output/ensemble/"
 
     # Approximations of the larger data set
     n_real_data_size = 2000000
@@ -70,26 +73,26 @@ def main():
         #     random_state = 0 ))
     
     trainer = utils.EnsembleTrainer( base_models, x_tr, y_tr, x_te, y_te, 
-                                     file_path="./output/ensemble/" )
+                                     file_path = output_path )
 
     ###########################################################################
     
     temp_weight = 100
 
-    ns = (2.0**np.arange(6,8+1)).astype(int)
+    ns = np.unique((2.0**np.linspace(0,12,12*5+1)[1:]).astype(int))
     n_best = trainer.find_n_linear(ns, weight=temp_weight)
 
     ###########################################################################
     
-    thresholds = np.linspace(0.7, 1.0, 3).astype(float).round(decimals=10)
-    weights    = np.linspace( 50, 350, 2).astype(float).round(decimals=10)
+    thresholds = np.linspace(0.75, 0.95, 100+1).astype(float).round(decimals=10)
+    weights    = np.linspace(   0,  200, 100+1).astype(float).round(decimals=10)[1:]
     weight_best, threshold_best = trainer.find_weights_and_threshold_grid( 
                                           thresholds, weights )
 
     # Best results so far: 
-    #     n = 2^7
-    #     qso_weight = 1e2
-    #     threshold = 0.78
+    #     n = 111
+    #     weight = 125
+    #     threshold = 0.85
 
     ###########################################################################
     
@@ -113,7 +116,7 @@ def main():
     disp = plot_confusion_matrix(trainer.model_best, x_te, y_te, 
         cmap=plt.cm.Blues, normalize="true", display_labels=classes) 
     disp.ax_.set_title("Ensenmble Model || CM Normalized")
-    plt.savefig('output/ensemble/CM.pdf')
+    plt.savefig(path.join(output_path, "CM.pdf"))
     plt.clf()
 
     ###########################################################################
@@ -126,7 +129,7 @@ def main():
     plt.title("Histogram of Best Model's Scores || X-Train")
     plt.xlabel("Score || Probabalistic guess of it being a Lens")
     plt.ylabel("Count")
-    plt.savefig('output/ensemble/hist_train.pdf')
+    plt.savefig(path.join(output_path, "hist_train.pdf"))
     plt.clf()
 
     y_pr_te = trainer.model_best.predict_proba(x_te).T[LENS]
@@ -137,7 +140,7 @@ def main():
     plt.title("Histogram of Best Model's Scores || X-Test")
     plt.xlabel("Score || Probabalistic guess of it being a Lens")
     plt.ylabel("Count")
-    plt.savefig('output/ensemble/hist_test.pdf')
+    plt.savefig(path.join(output_path, "hist_test.pdf"))
     plt.clf()
 
     ###########################################################################
