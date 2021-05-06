@@ -184,7 +184,6 @@ class EnsembleTrainer(object):
             error_te[i] = model.error(self.x_te, self.y_te)
             models[i] = model
             if verbose: bar.increment()
-        if verbose: print(']')
 
         model_best = models[np.argmin(error_te)]
         n_best = ns[np.argmin(error_te)]
