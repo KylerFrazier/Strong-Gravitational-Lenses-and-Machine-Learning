@@ -142,7 +142,6 @@ class EnsembleTrainer(object):
             print(f"Best n: {n_best}\n")
 
         n_data = {
-            "models"     : models,
             "ns"         : ns,
             "error_tr"   : error_tr,
             "error_te"   : error_te,
@@ -162,7 +161,6 @@ class EnsembleTrainer(object):
 
     def find_weights_and_threshold_grid( self, thresholds, weights, n=None,
                                          verbose=True, save=True, plot=True ):
-        models = np.empty((len(weights), len(thresholds)), dtype=object)
         error_tr = np.zeros((len(weights), len(thresholds)))
         error_te = np.zeros((len(weights), len(thresholds)))
 
@@ -170,6 +168,10 @@ class EnsembleTrainer(object):
             n = self.n_best
         elif n == None:
             n = 2**7
+
+        error_best = np.inf
+        model_best = None
+        ind_best = (0,0)
 
         if verbose: print( ' '*11 + '_'*(len(weights)*2+1) + '\n' + \
                            "Progress: [ ", end='', flush=True )
@@ -184,14 +186,21 @@ class EnsembleTrainer(object):
                                     final_estimator = ens_wrapper,
                                     threshold = threshold )
                 model.fit(self.x_tr, self.y_tr, sample_weight = sample_weight)
+
+                error_test = model.error(self.x_te, self.y_te)
                 error_tr[i,j] = model.error(self.x_tr, self.y_tr)
-                error_te[i,j] = model.error(self.x_te, self.y_te)
-                models[i,j] = model
+                error_te[i,j] = error_test
+                if error_test < error_best:
+                    error_best = error_test
+                    model_best = model
+                    ind_best = (i,j)
             if verbose: print('> ', end='', flush=True)
         if verbose: print(']')
 
         ind = np.unravel_index(np.argmin(error_te), error_te.shape)
-        model_best = models[ind]
+        if ind != ind_best: 
+            print("The selected model didn't match the selected error values!")
+
         weight_best = weights[ind[0]]
         threshold_best = thresholds[ind[1]]
         self.weight_best = weight_best
@@ -206,13 +215,12 @@ class EnsembleTrainer(object):
             print(f"Best threshold: {threshold_best}\n")
 
         weights_and_threshold_data = {
-            "models"         : models,
             "weights"        : weights,
             "thresholds"     : thresholds,
             "error_tr"       : error_tr,
             "error_te"       : error_te,
             "model_best"     : model_best,
-            "weight_best"   : weight_best,
+            "weight_best"    : weight_best,
             "threshold_best" : threshold_best
         }
         self.data["weights_and_threshold"] = weights_and_threshold_data

@@ -84,8 +84,8 @@ def main():
 
     ###########################################################################
     
-    thresholds = np.linspace(0.75, 0.95, 101).astype(float).round(decimals=10)
-    weights    = np.linspace(   0,  200, 101).astype(float).round(decimals=10)[1:]
+    thresholds = np.linspace(0.75, 0.95, 100+1).astype(float).round(decimals=10)
+    weights    = np.linspace(   0,  200, 100+1).astype(float).round(decimals=10)[1:]
     weight_best, threshold_best = trainer.find_weights_and_threshold_grid( 
                                           thresholds, weights )
 
