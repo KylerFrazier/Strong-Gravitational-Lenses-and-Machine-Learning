@@ -1,6 +1,6 @@
 # Changes matplotlib's backend to write to file instead of display
-# import matplotlib
-# matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')
 
 # Modules for processing, math, and graphing
 import numpy as np
@@ -15,11 +15,11 @@ import warnings
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 # Change plot fonts and enable LaTeX
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["Computer Modern Roman"]
-})
+# plt.rcParams.update({
+#     "text.usetex": True,
+#     "font.family": "serif",
+#     "font.serif": ["Computer Modern Roman"]
+# })
 
 # Modules for machine learning and other utilities
 from utils import ( EnsembleBT,
@@ -33,7 +33,7 @@ def main():
 
     ###########################################################################
 
-    output_path = "./output/ensemble/"
+    output_path = "./output/ensemble_multi_processing/"
 
     # Approximations of the larger data set
     n_real_data_size = 2000000
