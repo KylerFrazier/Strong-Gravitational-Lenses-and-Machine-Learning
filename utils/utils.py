@@ -60,6 +60,21 @@ def plot_errors_3D(x, y, x_label, y_label, error_tr, error_te, path1, path2):
     plt.savefig(path2)
     plt.clf()
 
+class ProgressBar(object):
+
+    def __init__(self, length):
+        self.length = length
+        self.tics = 0
+        print(' '*11 + '_'*(length*2+1))
+        print("Progress: [ ", end='', flush=True)
+    
+    def incriment(self):
+        if self.tics < self.length:
+            print('> ', end='', flush=True)
+            self.tics += 1
+            if self.tics >= self.length: 
+                print(']')
+
 class EnsembleTrainer(object):
 
     def __init__( self, base_models, x_tr, y_tr, x_te, y_te, 
@@ -116,8 +131,7 @@ class EnsembleTrainer(object):
         sample_weight = np.ones(self.y_tr.shape)
         sample_weight[self.y_tr == 0] = weight
 
-        if verbose: print( ' '*11 + '_'*(len(ns)*2+1) + '\n' + \
-                           "Progress: [ ", end='', flush=True )
+        if verbose: bar = ProgressBar(len(ns))
         for i, n in enumerate(ns):
             ens_wrapper = RandomForestBT(n_estimators = n, random_state = 0)
             model = EnsembleBT( estimators = self.base_models, 
@@ -127,8 +141,7 @@ class EnsembleTrainer(object):
             error_tr[i] = model.error(self.x_tr, self.y_tr)
             error_te[i] = model.error(self.x_te, self.y_te)
             models[i] = model
-            if verbose: print('> ', end='', flush=True)
-        if verbose: print(']')
+            if verbose: bar.incriment()
 
         model_best = models[np.argmin(error_te)]
         n_best = ns[np.argmin(error_te)]
@@ -173,8 +186,7 @@ class EnsembleTrainer(object):
         model_best = None
         ind_best = (0,0)
 
-        if verbose: print( ' '*11 + '_'*(len(weights)*2+1) + '\n' + \
-                           "Progress: [ ", end='', flush=True )
+        if verbose: bar = ProgressBar(len(weights))
         for i, weight in enumerate(weights):
             sample_weight = np.ones(self.y_tr.shape)
             sample_weight[self.y_tr == 0] = weight
@@ -194,8 +206,7 @@ class EnsembleTrainer(object):
                     error_best = error_test
                     model_best = model
                     ind_best = (i,j)
-            if verbose: print('> ', end='', flush=True)
-        if verbose: print(']')
+            if verbose: bar.incriment()
 
         ind = np.unravel_index(np.argmin(error_te), error_te.shape)
         if ind != ind_best: 
