@@ -25,13 +25,12 @@ plt.rcParams.update({
 from utils import ( EnsembleBT,
                     RandomForestBT,
                     SupportVectorMachineBT,
-                    GradientBoostingBT,
-                    NeuralNetworkBT )
+                    GradientBoostingBT )
 from utils import utils
 
 def main():
 
-    ###########################################################################
+    ### Setting up data and base models ###
 
     output_path = "./output/ensemble/"
 
@@ -65,39 +64,31 @@ def main():
             loss = "deviance",  
             random_state = 0 )) 
     ]
-        # ('nn',  NeuralNetworkBT( 
-        #     hidden_layer_sizes = (28,),
-        #     max_iter=2000,
-        #     learning_rate = "adaptive",
-        #     learning_rate_init = 0.0001,
-        #     random_state = 0 ))
-    
+
     trainer = utils.EnsembleTrainer( base_models, x_tr, y_tr, x_te, y_te, 
                                      file_path = output_path )
 
-    ###########################################################################
+    ### Tuning n ###
     
     temp_weight = 100
 
     ns = np.unique((2.0**np.linspace(0,12,12*5+1)[1:]).astype(int))
     n_best = trainer.find_n_linear(ns, weight=temp_weight)
 
-    ###########################################################################
+    ### Tuning weights and thresholds ###
     
     thresholds = np.linspace(0.75, 0.95, 2**7+1).astype(float).round(decimals=10)
     weights    = np.linspace(   0,  200, 2**7+1).astype(float).round(decimals=10)[1:]
     weight_best, threshold_best = trainer.find_weights_and_threshold_grid( 
                                           thresholds, weights )
 
+    ### Displaying results ###
+
     # Best results so far: 
     #     n = 111
     #     weight = 125
     #     threshold = 0.85
-    #     tp = 0.3035
-
-    ###########################################################################
-    
-    ###########################################################################
+    #     tp = 0.3036
     
     print("Best Error:", trainer.model_best.error(x_te, y_te))
     print("Best n:", n_best)
@@ -113,38 +104,12 @@ def main():
     print("    Selected QSOs   =", int(n_real_data_size*fp_best))
     print("    Selected Lenses =", int(n_predicted_lenses*tp_best))
 
-
     disp = plot_confusion_matrix(trainer.model_best, x_te, y_te, 
         cmap=plt.cm.Blues, normalize="true", display_labels=classes) 
     disp.ax_.set_title("Ensenmble Model || CM Normalized")
     plt.savefig(path.join(output_path, "CM.pdf"))
     plt.clf()
 
-    ###########################################################################
-
-    y_pr_tr = trainer.model_best.predict_proba(x_tr).T[LENS]
-    plt.figure()
-    plt.hist(y_pr_tr[y_tr == QSO], bins = 15, alpha = 0.5, label = "QSO")
-    plt.hist(y_pr_tr[y_tr == LENS], bins = 15, alpha = 0.5, label = "Lens")
-    plt.legend(loc='upper right')
-    plt.title("Histogram of Best Model's Scores || X-Train")
-    plt.xlabel("Score || Probabalistic guess of it being a Lens")
-    plt.ylabel("Count")
-    plt.savefig(path.join(output_path, "hist_train.pdf"))
-    plt.clf()
-
-    y_pr_te = trainer.model_best.predict_proba(x_te).T[LENS]
-    plt.figure()
-    plt.hist(y_pr_te[y_te == QSO], bins = 10, alpha = 0.5, label = "QSO")
-    plt.hist(y_pr_te[y_te == LENS], bins = 10, alpha = 0.5, label = "Lens")
-    plt.legend(loc='upper right')
-    plt.title("Histogram of Best Model's Scores || X-Test")
-    plt.xlabel("Score || Probabalistic guess of it being a Lens")
-    plt.ylabel("Count")
-    plt.savefig(path.join(output_path, "hist_test.pdf"))
-    plt.clf()
-
-    ###########################################################################
 
 if __name__ == "__main__":
     main()
