@@ -11,18 +11,6 @@ class BaseBinaryThreshold(ABC):
     def predict(self, X):
         # Predicts class for X with an offset threshold
         return (self.predict_proba(X)[:,1] >= self.threshold).astype(int)
-    
-    # def predict_proba(self, X):
-    #     # Scales the probabilities so that threshold -> 0.5
-    #     y = super().predict_proba(X)
-    #     lt = y < self.threshold
-    #     gt = y >= self.threshold
-    #     y[lt] /= 2 * self.threshold
-    #     if self.threshold != 1:
-    #         y[gt] -= self.threshold
-    #         y[gt] /= 2 * (1 - self.threshold)
-    #         y[gt] += 0.5
-    #     return y
 
     def error(self, x, y, soft = False, beta = 0.01):
         return 1 - self.fscore(x, y, soft, beta)
