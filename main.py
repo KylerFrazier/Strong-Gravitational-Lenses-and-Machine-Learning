@@ -1,7 +1,3 @@
-# Changes matplotlib's backend to write to file instead of display
-# import matplotlib
-# matplotlib.use('Agg')
-
 # Modules for processing, math, and graphing
 import numpy as np
 from matplotlib import pyplot as plt
