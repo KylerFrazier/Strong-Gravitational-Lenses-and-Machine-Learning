@@ -8,4 +8,5 @@ The file `main.py` will create a hyperparameter tuner and train many models on t
 <br>
 The file `clasify.py` will take the pickled model tuner, which contains the best model and performance data, and classify some testing data with it. It then outputs useful plots and information.<br>
 <br>
-*Note:* The data used for training and testing is not included in this repo, as it is not yet public.
+**Note:** The data used for training and testing is not included in this repo, as it is not yet public.<br>
+**Note:** To see the code that was included directly in the BSc Thesis, change to the `latex` branch.
